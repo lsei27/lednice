@@ -14,8 +14,8 @@ def create_app():
     
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
-    from .routes.image_upload import image_bp
-    from .routes.recipe_generator import recipe_bp
+    from routes.image_upload import image_bp
+    from routes.recipe_generator import recipe_bp
     
     app.register_blueprint(image_bp, url_prefix='/api/image')
     app.register_blueprint(recipe_bp, url_prefix='/api/recipes')
