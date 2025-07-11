@@ -62,6 +62,7 @@ pip install -r backend/requirements.txt
 ### 2. Konfigurace OpenAI (volitelné)
 ```bash
 # Upravte config.env soubor s vaším OpenAI API klíčem
+# Získejte klíč na: https://platform.openai.com/api-keys
 OPENAI_API_KEY=sk-your-api-key-here
 ```
 

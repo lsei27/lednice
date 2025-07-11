@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/
+
+# Env & config
+.env
+config.env
+
+# Uploads/media
+uploads/
+
+# Node/npm (pokud by byl použit)
+node_modules/
+
+# Logy
+*.log
+
+# Test coverage
+htmlcov/
+.coverage
+
+# Soubory editorů
+*.swp
+*.swo
+
+# Soubory systému
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Složka s dokumentací (pokud bude generována)
+docs/ 
