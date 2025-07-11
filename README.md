@@ -1,0 +1,99 @@
+# Fridge Recipe App 🍳
+
+Aplikace pro generování rychlých a zdravých receptů na základě obsahu ledničky s podporou OpenAI AI.
+
+## Funkce
+
+- 📸 Nahrání fotografie obsahu ledničky
+- 🤖 AI analýza pomocí OpenAI Vision API
+- 🧠 Dynamické generování receptů pomocí OpenAI GPT
+- ⏱️ Generování receptů do 20 minut
+- 🥗 Zdravé recepty bez smažení
+- 📱 Moderní a intuitivní rozhraní
+- 🔄 Fallback mechanismus na lokální databázi
+
+## AI Integrace
+
+### OpenAI API
+- **GPT-4 Vision**: Přesná analýza fotografií ledničky
+- **GPT-4**: Generování unikátních receptů
+- **Inteligentní filtrování**: Respektuje časové omezení a zdravé vaření
+
+### Výhody AI
+- 🎯 Neomezené recepty: Každý recept je unikátní
+- 🔍 Přesná detekce: Skutečné rozpoznávání ingrediencí
+- 🚀 Adaptivní: Přizpůsobuje se dostupným ingrediencím
+
+## Dostupné spotřebiče
+
+- Elektrický sporák
+- Trouba
+- Mikrovlnná trouba
+- Horkovzdušná parní fritéza
+- Mixér
+- Tyčový mixér
+- Elektrický kontaktní gril
+- Toastovač
+
+## Struktura projektu
+
+```
+fridge-recipe-app/
+├── frontend/          # HTML/CSS/JS frontend
+├── backend/           # Python Flask API
+│   ├── services/     # Business logika
+│   │   ├── openai_service.py  # OpenAI integrace
+│   │   ├── image_analyzer.py  # AI analýza obrázků
+│   │   └── recipe_generator.py # Generování receptů
+│   └── routes/       # API endpoints
+├── docs/             # Dokumentace
+└── config.env        # Konfigurace (OpenAI API klíč)
+```
+
+## Rychlé spuštění
+
+### 1. Instalace
+```bash
+git clone <repository>
+cd fridge-recipe-app
+pip install -r backend/requirements.txt
+```
+
+### 2. Konfigurace OpenAI (volitelné)
+```bash
+# Upravte config.env soubor s vaším OpenAI API klíčem
+OPENAI_API_KEY=sk-your-api-key-here
+```
+
+### 3. Spuštění
+```bash
+# Backend
+python start_backend.py
+
+# Frontend (v novém terminálu)
+python start_frontend.py
+```
+
+### 4. Použití
+1. Otevřete `http://localhost:8000` v prohlížeči
+2. Vyfotografujte obsah ledničky
+3. Nahrajte fotografii
+4. Získejte AI generované recepty!
+
+## Režimy fungování
+
+### 🚀 AI režim (s OpenAI API)
+- Přesná analýza fotografií
+- Neomezené množství unikátních receptů
+- Inteligentní přizpůsobení ingrediencím
+
+### 📚 Fallback režim (bez OpenAI)
+- Simulace AI detekce
+- 6 základních zdravých receptů
+- Plná funkcionalita aplikace
+
+## Náklady
+
+- **OpenAI API**: ~$0.05-0.10 za analýzu
+- **Fallback**: Zcela zdarma
+- **Hosting**: Vlastní server nebo cloud 

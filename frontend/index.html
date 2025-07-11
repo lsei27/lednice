@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fridge Recipe App 🍳</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="container">
+                <h1 class="logo">
+                    <i class="fas fa-utensils"></i>
+                    Fridge Recipe App
+                </h1>
+                <p class="subtitle">Rychlé a zdravé recepty z vaší ledničky</p>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="container">
+                <section class="upload-section" id="uploadSection">
+                    <div class="upload-card">
+                        <div class="upload-icon">
+                            <i class="fas fa-camera"></i>
+                        </div>
+                        <h2>Vyfotografujte obsah ledničky</h2>
+                        <p>Nahrajte fotografii a získejte rychlé recepty do 20 minut</p>
+                        
+                        <div class="upload-area" id="uploadArea">
+                            <input type="file" id="imageInput" accept="image/*" capture="environment" hidden>
+                            <div class="upload-content">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <p>Klikněte pro nahrání fotografie</p>
+                                <p class="upload-hint">nebo přetáhněte soubor sem</p>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-primary" id="uploadBtn" disabled>
+                            <i class="fas fa-upload"></i>
+                            Nahrát a analyzovat
+                        </button>
+                    </div>
+                </section>
+
+                <section class="loading-section" id="loadingSection" style="display: none;">
+                    <div class="loading-card">
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                        <h3>Analyzuji obsah ledničky...</h3>
+                        <p>AI zpracovává vaši fotografii a hledá dostupné ingredience</p>
+                    </div>
+                </section>
+
+                <section class="results-section" id="resultsSection" style="display: none;">
+                    <div class="results-header">
+                        <h2>Nalezené ingredience</h2>
+                        <button class="btn btn-secondary" id="newPhotoBtn">
+                            <i class="fas fa-camera"></i>
+                            Nová fotografie
+                        </button>
+                    </div>
+                    
+                    <div class="ingredients-grid" id="ingredientsGrid"></div>
+                    
+                    <div class="recipes-section">
+                        <h3>Doporučené recepty</h3>
+                        <div class="recipes-grid" id="recipesGrid"></div>
+                    </div>
+                </section>
+
+                <div class="modal" id="recipeModal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modalRecipeName"></h3>
+                            <button class="modal-close" id="modalClose">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="modal-body" id="modalBody"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; 2024 Fridge Recipe App. Vytvořeno s ❤️ pro rychlé a zdravé vaření.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html> 
