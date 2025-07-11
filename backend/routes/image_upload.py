@@ -3,8 +3,8 @@ from werkzeug.utils import secure_filename
 import os
 import uuid
 from datetime import datetime
-from ..services.image_analyzer import ImageAnalyzer
-from ..utils.file_utils import allowed_file, save_image
+from services.image_analyzer import ImageAnalyzer
+from utils.file_utils import allowed_file, save_image
 
 image_bp = Blueprint('image', __name__)
 
