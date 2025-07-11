@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from ..services.recipe_generator import RecipeGenerator
-from ..services.recipe_database import RecipeDatabase
+from services.recipe_generator import RecipeGenerator
+from services.recipe_database import RecipeDatabase
 
 recipe_bp = Blueprint('recipes', __name__)
 
