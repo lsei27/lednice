@@ -269,11 +269,13 @@ class FridgeRecipeApp {
             <div class="recipe-detail-section">
                 <h4>Ingredience</h4>
                 <div class="recipe-ingredients">
-                    ${recipe.ingredients.map(ing => `
-                        <div class="recipe-ingredient">
-                            <strong>${ing.name}</strong> - ${ing.amount} ${ing.unit}
-                        </div>
-                    `).join('')}
+                    ${recipe.ingredients.map(ing => {
+                        if (typeof ing === 'string') {
+                            return `<div class="recipe-ingredient"><strong>${ing}</strong></div>`;
+                        } else {
+                            return `<div class="recipe-ingredient"><strong>${ing.name ?? ''}</strong>${ing.amount ? ' - ' + ing.amount : ''} ${ing.unit ?? ''}</div>`;
+                        }
+                    }).join('')}
                 </div>
             </div>
             
