@@ -202,6 +202,7 @@ class FridgeRecipeApp {
         
         // Add fade-in animation
         this.resultsSection.classList.add('fade-in');
+        // recipeCard.addEventListener('click', () => this.showRecipeDetail(recipe)); // This line is removed as per the edit hint
     }
     
     renderIngredients() {
@@ -232,6 +233,8 @@ class FridgeRecipeApp {
             const recipeCard = document.createElement('div');
             recipeCard.className = 'recipe-card fade-in';
             recipeCard.addEventListener('click', () => this.showRecipeDetail(recipe));
+            recipeCard.addEventListener('touchstart', () => this.showRecipeDetail(recipe));
+            recipeCard.style.cursor = 'pointer';
             
             const availability = recipe.ingredient_availability;
             const availabilityText = `${availability.available_count}/${availability.total_count} ingrediencí dostupných`;
