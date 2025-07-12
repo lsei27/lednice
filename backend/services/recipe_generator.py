@@ -152,10 +152,10 @@ class RecipeGenerator:
         if recipe.get('prep_time', 0) <= 10:
             tips.append("Připravte si všechny ingredience předem pro rychlejší vaření")
         
-        if any('zelenina' in ing.lower() for ing in recipe.get('ingredients', [])):
+        if any('zelenina' in ing['name'].lower() for ing in recipe.get('ingredients', [])):
             tips.append("Zeleninu vařte al dente pro zachování vitamínů")
         
-        if any('maso' in ing.lower() for ing in recipe.get('ingredients', [])):
+        if any('maso' in ing['name'].lower() for ing in recipe.get('ingredients', [])):
             tips.append("Maso nechte odležet před krájením pro lepší chuť")
         
         return tips
