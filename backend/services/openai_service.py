@@ -60,7 +60,7 @@ class OpenAIService:
         }
         
         data = {
-            "model": "gpt-4-vision-preview",
+            "model": "gpt-4o",
             "messages": [
                 {
                     "role": "user",
@@ -90,7 +90,7 @@ class OpenAIService:
         }
         
         data = {
-            "model": "gpt-4",
+            "model": "gpt-4o",
             "messages": [
                 {
                     "role": "system",
