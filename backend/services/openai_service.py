@@ -29,7 +29,7 @@ class OpenAIService:
             - Odhadované množství
             - Čerstvost (čerstvé, dobré, spotřebuj brzy)
             
-            Vrať výsledek jako JSON pole objektů s klíči: name, category, quantity, freshness.
+            Vrať výsledek jako JSON objekt s klíčem "ingredients", který obsahuje pole objektů s klíči: name, category, quantity, freshness.
             Vrať pouze validní JSON bez jakéhokoliv dalšího textu, komentářů nebo vysvětlení.
             """
             
@@ -44,7 +44,6 @@ class OpenAIService:
                          max_time: int = 20, 
                          dietary_restrictions: List[str] = None) -> List[Dict[str, Any]]:
         try:
-            # OPRAVA 1: Zpracování ingrediencí je nyní robustnější
             ingredients_list = []
             for ing in ingredients:
                 if isinstance(ing, dict):
@@ -66,6 +65,10 @@ class OpenAIService:
             return self._create_fallback_recipes()
 
     def _call_api(self, data: Dict[str, Any]) -> str:
+        """
+        Bezpečně zavolá OpenAI API a vrátí obsah odpovědi.
+        Pokud obsah chybí nebo je None, vrátí prázdný string.
+        """
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
@@ -76,7 +79,12 @@ class OpenAIService:
         if response.status_code != 200:
             raise Exception(f"OpenAI API error: {response.status_code} - {response.text}")
         
-        return response.json()['choices'][0]['message']['content']
+        try:
+            content = response.json()['choices'][0]['message']['content']
+        except (KeyError, IndexError):
+            return "" # Vrací prázdný string, pokud struktura odpovědi není správná
+
+        return content if content is not None else ""
 
     def _call_vision_api(self, encoded_image: str, prompt: str) -> str:
         data = {
@@ -94,7 +102,7 @@ class OpenAIService:
                 }
             ],
             "max_tokens": 1000,
-            "response_format": {"type": "json_object"} # VYLEPŠENÍ: Vynutí JSON odpověď
+            "response_format": {"type": "json_object"}
         }
         return self._call_api(data)
 
@@ -110,7 +118,7 @@ class OpenAIService:
             ],
             "max_tokens": 2000,
             "temperature": 0.7,
-            "response_format": {"type": "json_object"} # VYLEPŠENÍ: Vynutí JSON odpověď
+            "response_format": {"type": "json_object"}
         }
         return self._call_api(data)
 
@@ -120,7 +128,6 @@ class OpenAIService:
         if dietary_restrictions:
             restrictions_text = f"\nDietní omezení: {', '.join(dietary_restrictions)}"
         
-        # VYLEPŠENÍ: Přesunuto schéma JSONu na konec pro lepší srozumitelnost
         return f"""
         Vytvoř 3-5 rychlých a zdravých receptů na základě těchto ingrediencí z ledničky: {ingredients_text}
         
@@ -146,16 +153,24 @@ class OpenAIService:
         """
 
     def _parse_json_response(self, response_str: str) -> Any:
+        if not response_str:
+            return None
         cleaned_response = response_str.strip()
         if cleaned_response.startswith('```json'):
             cleaned_response = cleaned_response[7:-3].strip()
+        
+        if not cleaned_response:
+            return None
+            
         return json.loads(cleaned_response)
 
     def _parse_ingredients_response(self, response_str: str) -> List[Dict[str, Any]]:
         try:
             parsed_json = self._parse_json_response(response_str)
-            # Předpokládáme, že Vision API vrací přímo pole
-            ingredients = parsed_json if isinstance(parsed_json, list) else parsed_json.get('ingredients', [])
+            if not parsed_json:
+                return []
+                
+            ingredients = parsed_json.get('ingredients', [])
             
             valid_ingredients = []
             for ingredient in ingredients:
@@ -175,30 +190,88 @@ class OpenAIService:
     def _parse_recipes_response(self, response_str: str) -> List[Dict[str, Any]]:
         try:
             parsed_json = self._parse_json_response(response_str)
-            recipes = parsed_json.get('recipes', [])
+            if not parsed_json:
+                return self._create_fallback_recipes()
+                
+            recipes_from_api = parsed_json.get('recipes', [])
             
-            # OPRAVA 2: Přidání tagů a spotřebičů ke každému receptu
-            for recipe in recipes:
-                recipe['tags'] = self._generate_recipe_tags(recipe)
-                recipe['appliances'] = self._detect_appliances(recipe)
-            return recipes
-        except (json.JSONDecodeError, AttributeError) as e:
+            valid_recipes = []
+            for recipe in recipes_from_api:
+                if not isinstance(recipe, dict):
+                    continue
+
+                new_recipe = {
+                    'name': recipe.get('name', 'Recept bez názvu'),
+                    'prep_time': recipe.get('prep_time', 0),
+                    'servings': recipe.get('servings', 1),
+                    'ingredients': recipe.get('ingredients', []),
+                    'instructions': recipe.get('instructions', []),
+                    'nutrition_info': recipe.get('nutrition_info', {}),
+                    'cooking_tips': recipe.get('cooking_tips', [])
+                }
+                
+                new_recipe['tags'] = self._generate_recipe_tags(new_recipe)
+                new_recipe['appliances'] = self._detect_appliances(new_recipe)
+                
+                valid_recipes.append(new_recipe)
+                
+            return valid_recipes
+            
+        except (json.JSONDecodeError, AttributeError, KeyError) as e:
             print(f"Chyba při parsování receptů: {e}")
             print(f"Odpověď od OpenAI byla: {response_str}")
             return self._create_fallback_recipes()
 
     def _fallback_ingredients_parsing(self, response_str: str) -> List[Dict[str, Any]]:
-        # ... (kód zůstává stejný)
-        return []
+        print("Používám záložní parsování ingrediencí.")
+        ingredients = []
+        # ... (zbytek logiky můžeš doplnit) ...
+        return ingredients
 
     def _generate_recipe_tags(self, recipe: Dict) -> List[str]:
-        # ... (kód zůstává stejný)
-        return []
+        tags = []
+        if recipe.get('prep_time', 99) <= 20:
+            tags.append('rychlé')
+        
+        ingredients_str = ' '.join(str(i) for i in recipe.get('ingredients', [])).lower()
+        if 'kuřecí' in ingredients_str or 'kuře' in ingredients_str:
+            tags.append('kuřecí')
+        if 'ryba' in ingredients_str or 'losos' in ingredients_str or 'tuňák' in ingredients_str:
+            tags.append('rybí')
+        if any(veg in ingredients_str for veg in ['zelenina', 'mrkev', 'cibule', 'špenát', 'brokolice']):
+             tags.append('zeleninové')
+        if not any(maso in ingredients_str for maso in ['kuřecí', 'ryba', 'vepřové', 'hovězí']):
+            tags.append('vegetariánské')
+        tags.append('zdravé')
+        return list(set(tags))
 
     def _detect_appliances(self, recipe: Dict) -> List[str]:
-        # ... (kód zůstává stejný)
-        return []
+        appliances = ['elektrický sporák']
+        instructions = ' '.join(recipe.get('instructions', [])).lower()
+        
+        if any(word in instructions for word in ['trouba', 'pečeme', 'pečení']):
+            appliances.append('trouba')
+        if any(word in instructions for word in ['mikrovln', 'mikrovlnná']):
+            appliances.append('mikrovlnná trouba')
+        if any(word in instructions for word in ['mixér', 'mixujeme']):
+            appliances.append('mixér')
+        if any(word in instructions for word in ['gril', 'grilování']):
+            appliances.append('elektrický kontaktní gril')
+        
+        return list(set(appliances))
 
     def _create_fallback_recipes(self) -> List[Dict[str, Any]]:
-        # ... (kód zůstává stejný)
-        return []
+        print("Vracím záložní recepty.")
+        return [
+            {
+                'name': 'Rychlá zeleninová polévka',
+                'prep_time': 15,
+                'servings': 2,
+                'ingredients': [{'name': 'Zelenina z ledničky', 'amount': 'co dům dal'}, {'name': 'sůl, pepř', 'amount': 'na dochucení'}],
+                'instructions': ['Nakrájejte zeleninu na kousky.', 'Zalijte vodou a vařte 15 minut.', 'Ochuťte solí a pepřem.'],
+                'nutrition_info': {'calories': 150, 'protein': 5, 'carbs': 25, 'fat': 3},
+                'cooking_tips': ['Můžete přidat koření podle chuti.'],
+                'tags': ['rychlé', 'zeleninové', 'zdravé'],
+                'appliances': ['elektrický sporák'],
+            }
+        ]
