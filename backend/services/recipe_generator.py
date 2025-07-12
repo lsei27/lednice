@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 load_dotenv('config.env')
 
 class OpenAIService:
+    """
+    Služba pro komunikaci s OpenAI API pro analýzu obrázků ledničky a generování receptů.
+    """
     def __init__(self):
         self.api_key = os.getenv('OPENAI_API_KEY')
         self.base_url = "https://api.openai.com/v1"
@@ -220,4 +223,4 @@ class OpenAIService:
 
     def _create_fallback_recipes(self) -> List[Dict[str, Any]]:
         print("Vracím záložní recepty.")
-        return [{'name': 'Záložní recept: Zeleninová polévka', 'prep_time': 15, 'servings': 2, 'ingredients': [{'name': 'Zelenina z ledničky', 'amount': 'co dům dal'}], 'instructions': ['Nakrájejte zeleninu.', 'Vařte 15 minut.', 'Ochuťte.'], 'nutrition_info': {}, 'cooking_tips': [], 'tags': ['rychlé', 'zdravé'], 'appliances': ['elektrický sporák']}]
+        return [{'name': 'Záložní recept: Zeleninová polévka', 'prep_time': 15, 'servings': 2, 'ingredients': ['Zelenina z ledničky'], 'instructions': ['Nakrájejte zeleninu.', 'Vařte 15 minut.', 'Ochuťte.'], 'nutrition_info': {}, 'cooking_tips': [], 'tags': ['rychlé', 'zdravé'], 'appliances': ['elektrický sporák']}] 
