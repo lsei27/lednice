@@ -4,7 +4,6 @@ from .openai_service import OpenAIService
 
 class RecipeGenerator:
     def __init__(self):
-        self.db = RecipeDatabase()
         self.available_appliances = [
             'elektrický sporák', 'trouba', 'mikrovlnná trouba', 
             'horkovzdušná parní fritéza', 'mixér', 'tyčový mixér',
