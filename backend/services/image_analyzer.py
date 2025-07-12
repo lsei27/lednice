@@ -4,7 +4,7 @@ from PIL import Image
 import os
 import json
 from typing import List, Dict, Any
-from .openai_service import OpenAIService
+from .recipe_generator import OpenAIService
 
 class ImageAnalyzer:
     def __init__(self):

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from services.recipe_generator import RecipeGenerator
-from services.recipe_database import RecipeDatabase
+from ..services.recipe_generator import OpenAIService
+from ..services.recipe_database import RecipeDatabase
 
 recipe_bp = Blueprint('recipes', __name__)
 
@@ -16,7 +16,7 @@ def generate_recipes():
         max_time = data.get('max_time', 20)
         dietary_restrictions = data.get('dietary_restrictions', [])
         
-        generator = RecipeGenerator()
+        generator = OpenAIService()
         recipes = generator.generate_recipes(
             ingredients=ingredients,
             max_time=max_time,
