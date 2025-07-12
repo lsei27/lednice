@@ -149,6 +149,7 @@ class OpenAIService:
         Pro každý recept uveď: Název, čas přípravy, počet porcí, seznam ingrediencí s množstvím, postup, nutriční informace a tipy.
         Vrať výsledek jako JSON objekt s jedním klíčem "recipes", který obsahuje pole objektů.
         Každý objekt v poli musí mít klíče: name, prep_time, servings, ingredients, instructions, nutrition_info, cooking_tips.
+        Každý recept musí mít klíč "prep_time" s celým číslem v minutách (např. 10, 15, 20).
         Vrať pouze validní JSON bez jakéhokoliv dalšího textu, komentářů nebo vysvětlení.
         """
 
@@ -203,8 +204,10 @@ class OpenAIService:
 
                 try:
                     prep_time = int(recipe.get('prep_time', 0))
+                    if prep_time == 0:
+                        prep_time = 15  # výchozí hodnota, pokud model nevrátí čas
                 except (ValueError, TypeError):
-                    prep_time = 0
+                    prep_time = 15
                 new_recipe = {
                     'name': recipe.get('name', 'Recept bez názvu'),
                     'prep_time': prep_time,
