@@ -3,8 +3,8 @@ from werkzeug.utils import secure_filename
 import os
 import uuid
 from datetime import datetime
-from ..services.image_analyzer import ImageAnalyzer
-from ..utils.file_utils import allowed_file, save_image
+from services.image_analyzer import ImageAnalyzer
+from utils.file_utils import allowed_file, save_image
 
 image_bp = Blueprint('image', __name__)
 
@@ -60,4 +60,4 @@ def analyze_image(filename):
         }), 200
         
     except Exception as e:
-        return jsonify({'error': f'Chyba při analýze: {str(e)}'}), 500 
+        return jsonify({'error': f'Chyba při analýze: {str(e)}'}), 500
