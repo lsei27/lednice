@@ -237,7 +237,12 @@ class FridgeRecipeApp {
             recipeCard.style.cursor = 'pointer';
             
             const availability = recipe.ingredient_availability;
-            const availabilityText = `${availability.available_count}/${availability.total_count} ingrediencí dostupných`;
+            let availabilityText = '';
+            if (availability && typeof availability.available_count !== 'undefined' && typeof availability.total_count !== 'undefined') {
+                availabilityText = `${availability.available_count}/${availability.total_count} ingrediencí dostupných`;
+            } else {
+                availabilityText = 'Dostupnost ingrediencí: N/A';
+            }
             
             recipeCard.innerHTML = `
                 <div class="recipe-header">
