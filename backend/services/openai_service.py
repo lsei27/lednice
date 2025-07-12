@@ -29,7 +29,8 @@ class OpenAIService:
             - Odhadované množství
             - Čerstvost (čerstvé, dobré, spotřebuj brzy)
             
-            Vrať výsledek jako JSON pole objektů s klíči: name, category, quantity, freshness
+            Vrať výsledek jako JSON pole objektů s klíči: name, category, quantity, freshness.
+            Vrať pouze validní JSON bez jakéhokoliv dalšího textu, komentářů nebo vysvětlení.
             """
             
             response = self._call_vision_api(encoded_image, prompt)
@@ -59,7 +60,7 @@ class OpenAIService:
         }
         
         data = {
-            "model": "gpt-4o",
+            "model": "gpt-4-vision-preview",
             "messages": [
                 {
                     "role": "user",
@@ -89,7 +90,7 @@ class OpenAIService:
         }
         
         data = {
-            "model": "gpt-4o",
+            "model": "gpt-4",
             "messages": [
                 {
                     "role": "system",
@@ -146,7 +147,8 @@ class OpenAIService:
         - Nutriční informace (kalorie, bílkoviny, sacharidy, tuky na porci)
         - Tipy pro přípravu
         
-        Vrať výsledek jako JSON pole objektů s klíči: name, prep_time, servings, ingredients, instructions, nutrition_info, cooking_tips
+        Vrať výsledek jako JSON pole objektů s klíči: name, prep_time, servings, ingredients, instructions, nutrition_info, cooking_tips.
+        Vrať pouze validní JSON bez jakéhokoliv dalšího textu, komentářů nebo vysvětlení.
         """
         
         return prompt
@@ -154,84 +156,53 @@ class OpenAIService:
     def _parse_ingredients_response(self, response: str) -> List[Dict[str, Any]]:
         try:
             cleaned_response = response.strip()
+            if not cleaned_response:
+                print("Odpověď od OpenAI je prázdná!")
+                return []
             if cleaned_response.startswith('```json'):
                 cleaned_response = cleaned_response[7:]
             if cleaned_response.endswith('```'):
                 cleaned_response = cleaned_response[:-3]
             cleaned_response = cleaned_response.strip()
-            
             ingredients = json.loads(cleaned_response)
-            
             if not isinstance(ingredients, list):
                 ingredients = [ingredients]
-            
             valid_ingredients = []
             for ingredient in ingredients:
                 if not isinstance(ingredient, dict) or 'name' not in ingredient:
                     continue
-                    
                 valid_ingredient = {
                     'name': ingredient.get('name', 'Neznámá ingredience'),
                     'category': ingredient.get('category', 'ostatní'),
                     'quantity': ingredient.get('quantity', 'dostupné'),
                     'freshness': ingredient.get('freshness', 'čerstvé')
                 }
-                
                 valid_ingredients.append(valid_ingredient)
-            
             return valid_ingredients
-            
         except (json.JSONDecodeError, ValueError, TypeError) as e:
             print(f"Chyba při parsování ingrediencí: {e}")
+            print(f"Odpověď od OpenAI byla: {response}")
             return self._fallback_ingredients_parsing(response)
     
     def _parse_recipes_response(self, response: str) -> List[Dict[str, Any]]:
         try:
             cleaned_response = response.strip()
+            if not cleaned_response:
+                print("Odpověď od OpenAI je prázdná!")
+                return []
             if cleaned_response.startswith('```json'):
                 cleaned_response = cleaned_response[7:]
             if cleaned_response.endswith('```'):
                 cleaned_response = cleaned_response[:-3]
             cleaned_response = cleaned_response.strip()
-            
             recipes = json.loads(cleaned_response)
-            
             if not isinstance(recipes, list):
                 recipes = [recipes]
-            
-            enriched_recipes = []
-            for recipe in recipes:
-                if not isinstance(recipe, dict) or 'name' not in recipe:
-                    continue
-                    
-                enriched_recipe = {
-                    'id': f"ai_{hash(recipe.get('name', '')) % 10000}",
-                    'name': recipe.get('name', 'Neznámý recept'),
-                    'prep_time': recipe.get('prep_time', 15),
-                    'servings': recipe.get('servings', 2),
-                    'difficulty': 'snadné' if recipe.get('prep_time', 15) <= 15 else 'střední',
-                    'ingredients': recipe.get('ingredients', []),
-                    'instructions': recipe.get('instructions', []),
-                    'nutrition_info': recipe.get('nutrition_info', {}),
-                    'cooking_tips': recipe.get('cooking_tips', [])
-                }
-                
-                enriched_recipe['tags'] = self._generate_recipe_tags(enriched_recipe)
-                enriched_recipe['appliances'] = self._detect_appliances(enriched_recipe)
-                enriched_recipe['ingredient_availability'] = {
-                    'available_count': len(enriched_recipe['ingredients']),
-                    'total_count': len(enriched_recipe['ingredients']),
-                    'availability_percentage': 100,
-                    'missing_ingredients': []
-                }
-                
-                enriched_recipes.append(enriched_recipe)
-            
-            return enriched_recipes
-            
+            return recipes
         except (json.JSONDecodeError, ValueError, TypeError) as e:
             print(f"Chyba při parsování receptů: {e}")
-            return self._create_fallback_recipes()
+            print(f"Odpověď od OpenAI byla: {response}")
+            return []
     
     def _fallback_ingredients_parsing(self, response: str) -> List[Dict[str, Any]]:
         ingredients = []
