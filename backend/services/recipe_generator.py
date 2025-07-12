@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 import random
 from .openai_service import OpenAIService
+import json
 
 class RecipeGenerator:
     def __init__(self):
@@ -183,3 +184,23 @@ class RecipeGenerator:
             'carbs': base_carbs,
             'fat': base_fat
         } 
+
+    def _parse_ingredients_response(self, response: str) -> List[Dict[str, Any]]:
+        try:
+            cleaned_response = response.strip()
+            if not cleaned_response:
+                print("Odpověď od OpenAI je prázdná!")
+                return []
+            # ... zbytek kódu ...
+        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            print(f"Chyba při parsování ingrediencí: {e}")
+            print(f"Odpověď od OpenAI byla: {response}")
+            return self._fallback_ingredients_parsing(response)
+
+    def _fallback_ingredients_parsing(self, response: str) -> List[Dict[str, Any]]:
+        print(f"Pokus o parsování ingrediencí z nevalidního JSON: {response}")
+        # Toto je jenom fallback, nepředstavuje plnou logiku parsování
+        # V reálném případě by se měla použít nějaká robustnější knihovna pro JSON
+        # nebo by se měla zpracovat odpověď ručně.
+        # Pro jednoduchost v tomto příkladu vrátíme prázdný seznam.
+        return [] 
