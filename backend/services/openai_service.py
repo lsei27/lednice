@@ -198,6 +198,7 @@ class OpenAIService:
             valid_recipes = []
             for recipe in recipes_from_api:
                 if not isinstance(recipe, dict):
+                    print(f"Špatný typ receptu z OpenAI: {recipe} ({type(recipe)})")
                     continue
 
                 try:
