@@ -1,210 +1,223 @@
-from typing import List, Dict, Any
-import random
-from .openai_service import OpenAIService
+import os
+import base64
 import json
+import requests
+import traceback
+from typing import List, Dict, Any
+from dotenv import load_dotenv
 
-class RecipeGenerator:
+load_dotenv('config.env')
+
+class OpenAIService:
     def __init__(self):
-        self.available_appliances = [
-            'elektrický sporák', 'trouba', 'mikrovlnná trouba', 
-            'horkovzdušná parní fritéza', 'mixér', 'tyčový mixér',
-            'elektrický kontaktní gril', 'toastovač'
-        ]
+        self.api_key = os.getenv('OPENAI_API_KEY')
+        self.base_url = "https://api.openai.com/v1"
         
+        if not self.api_key:
+            raise ValueError("OPENAI_API_KEY není nastaven v .env souboru")
+
+    def analyze_fridge_image(self, image_path: str) -> List[Dict[str, Any]]:
         try:
-            self.openai_service = OpenAIService()
-            self.use_openai = True
+            with open(image_path, "rb") as image_file:
+                encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+            
+            prompt = """
+            Analyzuj obsah ledničky na fotografii a identifikuj všechny dostupné ingredience.
+            
+            Pro každou ingredienci uveď:
+            - Název ingredience
+            - Kategorii (zelenina, ovoce, maso, mléčné, vejce, těstoviny, rýže, luštěniny, koření, ostatní)
+            - Odhadované množství
+            - Čerstvost (čerstvé, dobré, spotřebuj brzy)
+            
+            Vrať výsledek jako JSON objekt s klíčem "ingredients", který obsahuje pole objektů s klíči: name, category, quantity, freshness.
+            Vrať pouze validní JSON bez jakéhokoliv dalšího textu, komentářů nebo vysvětlení.
+            """
+            
+            response_str = self._call_vision_api(encoded_image, prompt)
+            return self._parse_ingredients_response(response_str)
+            
         except Exception as e:
-            print(f"OpenAI služba není dostupná: {e}")
-            self.use_openai = False
-    
-    def generate_recipes(self, ingredients: List[Dict[str, Any]], 
-                        max_time: int = 20, 
-                        dietary_restrictions: List[str] = None) -> List[Dict[str, Any]]:
-        if not self.use_openai:
-            raise RuntimeError("OpenAI API není dostupné. Nastavte správně OPENAI_API_KEY.")
+            print(f"Chyba při analýze obrázku: {e}")
+            traceback.print_exc()
+            return []
+
+    def generate_recipes(self, ingredients: List[Any], 
+                         max_time: int = 20, 
+                         dietary_restrictions: List[str] = None) -> List[Dict[str, Any]]:
+        """
+        Generuje recepty na základě seznamu názvů ingrediencí.
+        """
         try:
-            print("🤖 Používám OpenAI GPT pro generování receptů...")
-            ai_recipes = self.openai_service.generate_recipes(
-                ingredients, max_time, dietary_restrictions
-            )
-            if ai_recipes:
-                enriched_recipes = self._enrich_recipes(ai_recipes, ingredients)
-                return enriched_recipes
-            else:
+            ingredient_names = []
+            for ing in ingredients:
+                if isinstance(ing, dict):
+                    name = ing.get('name')
+                    if name:
+                        ingredient_names.append(name)
+                elif isinstance(ing, str):
+                    ingredient_names.append(ing)
+
+            if not ingredient_names:
+                print("Seznam ingrediencí pro generování je prázdný.")
                 return []
+
+            ingredients_text = ", ".join(ingredient_names)
+            
+            prompt = self._create_recipe_prompt(ingredients_text, max_time, dietary_restrictions)
+            response_str = self._call_gpt_api(prompt)
+            
+            return self._parse_recipes_response(response_str)
+            
         except Exception as e:
             print(f"Chyba při generování receptů: {e}")
-            return []
-    
-    def _filter_by_dietary_restrictions(self, recipes: List[Dict], 
-                                      restrictions: List[str]) -> List[Dict]:
-        filtered_recipes = []
-        
-        for recipe in recipes:
-            if self._recipe_matches_dietary_restrictions(recipe, restrictions):
-                filtered_recipes.append(recipe)
-        
-        return filtered_recipes
-    
-    def _recipe_matches_dietary_restrictions(self, recipe: Dict, 
-                                           restrictions: List[str]) -> bool:
-        recipe_tags = recipe.get('tags', [])
-        
-        for restriction in restrictions:
-            restriction_lower = restriction.lower()
-            
-            if 'vegetariánské' in restriction_lower and 'maso' in recipe_tags:
-                return False
-            
-            if 'veganské' in restriction_lower and ('maso' in recipe_tags or 'mléčné' in recipe_tags):
-                return False
-            
-            if 'bezlepkové' in restriction_lower and 'lepek' in recipe_tags:
-                return False
-        
-        return True
-    
-    def _select_best_recipes(self, recipes: List[Dict], 
-                           available_ingredients: List[str]) -> List[Dict]:
-        scored_recipes = []
-        
-        for recipe in recipes:
-            score = self._calculate_recipe_score(recipe, available_ingredients)
-            scored_recipes.append((recipe, score))
-        
-        scored_recipes.sort(key=lambda x: x[1], reverse=True)
-        selected_recipes = [recipe for recipe, score in scored_recipes[:5]]
-        
-        return selected_recipes
-    
-    def _calculate_recipe_score(self, recipe: Dict, 
-                              available_ingredients: List[str]) -> float:
-        recipe_ingredients = recipe.get('ingredients', [])
-        available_set = set(available_ingredients)
-        
-        available_count = 0
-        for ingredient in recipe_ingredients:
-            if ingredient['name'].lower() in available_set:
-                available_count += 1
-        
-        if len(recipe_ingredients) > 0:
-            availability_ratio = available_count / len(recipe_ingredients)
-        else:
-            availability_ratio = 0
-        
-        time_bonus = max(0, (20 - recipe.get('prep_time', 20)) / 20)
-        total_score = availability_ratio * 0.7 + time_bonus * 0.3
-        
-        return total_score
-    
-    def _enrich_recipes(self, recipes: List[Dict], 
-                       available_ingredients: List[Dict]) -> List[Dict]:
-        enriched_recipes = []
-        
-        for recipe in recipes:
-            enriched_recipe = recipe.copy()
-            
-            # Přidání informací o dostupnosti ingrediencí
-            enriched_recipe['ingredient_availability'] = self._get_ingredient_availability(
-                recipe, available_ingredients
-            )
-            
-            # Přidání tipů pro vaření
-            if 'cooking_tips' not in enriched_recipe:
-                enriched_recipe['cooking_tips'] = self._generate_cooking_tips(recipe)
-            
-            # Přidání nutričních informací
-            if 'nutrition_info' not in enriched_recipe:
-                enriched_recipe['nutrition_info'] = self._get_nutrition_info(recipe)
-            
-            enriched_recipes.append(enriched_recipe)
-        
-        return enriched_recipes
-    
-    def _get_ingredient_availability(self, recipe: Dict, 
-                                   available_ingredients: List[Dict]) -> Dict[str, Any]:
-        recipe_ingredients = recipe.get('ingredients', [])
-        available_names = [ing['name'].lower() for ing in available_ingredients]
-        
-        available_count = 0
-        missing_ingredients = []
-        
-        for ingredient in recipe_ingredients:
-            ingredient_name = ingredient['name'].lower()
-            if ingredient_name in available_names:
-                available_count += 1
-            else:
-                missing_ingredients.append(ingredient['name'])
-        
-        total_count = len(recipe_ingredients)
-        availability_percentage = (available_count / total_count * 100) if total_count > 0 else 0
-        
-        return {
-            'available_count': available_count,
-            'total_count': total_count,
-            'availability_percentage': round(availability_percentage, 1),
-            'missing_ingredients': missing_ingredients
+            traceback.print_exc()
+            return self._create_fallback_recipes()
+
+    def _call_api(self, data: Dict[str, Any]) -> str:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}"
         }
-    
-    def _generate_cooking_tips(self, recipe: Dict) -> List[str]:
-        tips = []
         
-        if recipe.get('prep_time', 0) <= 10:
-            tips.append("Připravte si všechny ingredience předem pro rychlejší vaření")
+        response = requests.post(f"{self.base_url}/chat/completions", headers=headers, json=data)
         
-        if any('zelenina' in ing['name'].lower() for ing in recipe.get('ingredients', [])):
-            tips.append("Zeleninu vařte al dente pro zachování vitamínů")
+        if response.status_code != 200:
+            raise Exception(f"OpenAI API error: {response.status_code} - {response.text}")
         
-        if any('maso' in ing['name'].lower() for ing in recipe.get('ingredients', [])):
-            tips.append("Maso nechte odležet před krájením pro lepší chuť")
-        
-        return tips
-    
-    def _get_nutrition_info(self, recipe: Dict) -> Dict[str, Any]:
-        # Simulace nutričních informací
-        base_calories = 200
-        base_protein = 15
-        base_carbs = 25
-        base_fat = 8
-        
-        # Úprava podle ingrediencí
-        ingredients = recipe.get('ingredients', [])
-        for ingredient in ingredients:
-            if 'maso' in ingredient['name'].lower():
-                base_protein += 10
-                base_calories += 50
-            elif 'zelenina' in ingredient['name'].lower():
-                base_calories += 20
-                base_carbs += 5
-        
-        return {
-            'calories': base_calories,
-            'protein': base_protein,
-            'carbs': base_carbs,
-            'fat': base_fat
-        } 
-
-    def _parse_ingredients_response(self, response: str) -> List[Dict[str, Any]]:
-        """
-        Očekává plain text odpověď: čárkami oddělený seznam názvů ingrediencí.
-        Vrací list dictů: [{"name": ...}]
-        """
-        cleaned_response = response.strip()
-        if not cleaned_response:
-            print("Odpověď od OpenAI je prázdná!")
-            return []
         try:
-            # Rozdělení podle čárek, odstranění whitespace, filtrování prázdných
-            names = [name.strip() for name in cleaned_response.split(',') if name.strip()]
-            return [{"name": name} for name in names]
-        except Exception as e:
-            print(f"Chyba při parsování ingrediencí: {e}")
-            print(f"Odpověď od OpenAI byla: {response}")
-            return self._fallback_ingredients_parsing(response)
+            content = response.json()['choices'][0]['message']['content']
+        except (KeyError, IndexError):
+            return ""
 
-    def _fallback_ingredients_parsing(self, response: str) -> List[Dict[str, Any]]:
-        print(f"Fallback parsování ingrediencí z plain textu: {response}")
-        # Stejná logika jako výše, ale robustněji ignoruje whitespace a prázdné položky
-        names = [name.strip() for name in response.split(',') if name.strip()]
-        return [{"name": name} for name in names] 
+        return content if content is not None else ""
+
+    def _call_vision_api(self, encoded_image: str, prompt: str) -> str:
+        data = {
+            "model": "gpt-4o",
+            "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded_image}"}}]}],
+            "max_tokens": 1000,
+            "response_format": {"type": "json_object"}
+        }
+        return self._call_api(data)
+
+    def _call_gpt_api(self, prompt: str) -> str:
+        data = {
+            "model": "gpt-4o",
+            "messages": [{"role": "system", "content": "Jsi expertní kuchař specializující se na rychlé a zdravé recepty."}, {"role": "user", "content": prompt}],
+            "max_tokens": 2000,
+            "temperature": 0.7,
+            "response_format": {"type": "json_object"}
+        }
+        return self._call_api(data)
+
+    def _create_recipe_prompt(self, ingredients_text: str, max_time: int, dietary_restrictions: List[str]) -> str:
+        restrictions_text = f"\nDietní omezení: {', '.join(dietary_restrictions)}" if dietary_restrictions else ""
+        
+        return f"""
+        Vytvoř 3-5 rychlých a zdravých receptů z těchto ingrediencí: {ingredients_text}.
+        Doma jsou běžné suroviny (sůl, pepř, olej, cibule, česnek, mouka, rýže, těstoviny).
+        Požadavky: maximální příprava {max_time} minut, zdravé vaření (ne smažení), respektuj spotřebiče (sporák, trouba, gril, mixér).
+        {restrictions_text}
+        Vrať JSON objekt s klíčem "recipes", což je pole objektů. Každý objekt musí mít klíče: name, prep_time, servings, ingredients (pole stringů), instructions (pole stringů), nutrition_info (objekt), cooking_tips (pole stringů).
+        Vrať POUZE validní JSON.
+        """
+
+    def _parse_json_response(self, response_str: str) -> Any:
+        if not response_str:
+            return None
+        cleaned_response = response_str.strip()
+        if cleaned_response.startswith('```json'):
+            cleaned_response = cleaned_response[7:-3].strip()
+        if not cleaned_response:
+            return None
+        return json.loads(cleaned_response)
+
+    def _parse_ingredients_response(self, response_str: str) -> List[Dict[str, Any]]:
+        try:
+            parsed_json = self._parse_json_response(response_str)
+            if not parsed_json:
+                return []
+            
+            valid_ingredients = []
+            for ingredient in parsed_json.get('ingredients', []):
+                if isinstance(ingredient, dict) and 'name' in ingredient:
+                    valid_ingredients.append({
+                        'name': ingredient.get('name', 'Neznámá ingredience'),
+                        'category': ingredient.get('category', 'ostatní'),
+                        'quantity': ingredient.get('quantity', 'dostupné'),
+                        'freshness': ingredient.get('freshness', 'čerstvé')
+                    })
+            return valid_ingredients
+        except (json.JSONDecodeError, AttributeError) as e:
+            print(f"Chyba při parsování ingrediencí: {e}")
+            return self._fallback_ingredients_parsing(response_str)
+
+    def _parse_recipes_response(self, response_str: str) -> List[Dict[str, Any]]:
+        try:
+            parsed_json = self._parse_json_response(response_str)
+            if not parsed_json:
+                return self._create_fallback_recipes()
+            
+            valid_recipes = []
+            for recipe in parsed_json.get('recipes', []):
+                if not isinstance(recipe, dict):
+                    continue
+
+                new_recipe = {
+                    'name': recipe.get('name', 'Recept bez názvu'),
+                    'prep_time': int(recipe.get('prep_time', 0)),
+                    'servings': int(recipe.get('servings', 1)),
+                    'ingredients': recipe.get('ingredients', []),
+                    'instructions': recipe.get('instructions', []),
+                    'nutrition_info': recipe.get('nutrition_info', {}),
+                    'cooking_tips': recipe.get('cooking_tips', [])
+                }
+                
+                new_recipe['tags'] = self._generate_recipe_tags(new_recipe)
+                new_recipe['appliances'] = self._detect_appliances(new_recipe)
+                
+                valid_recipes.append(new_recipe)
+            return valid_recipes
+        except (json.JSONDecodeError, AttributeError, KeyError, ValueError) as e:
+            print(f"Chyba při parsování receptů: {e}")
+            traceback.print_exc()
+            return self._create_fallback_recipes()
+
+    def _fallback_ingredients_parsing(self, response_str: str) -> List[Dict[str, Any]]:
+        print("Používám záložní parsování ingrediencí.")
+        return []
+
+    def _generate_recipe_tags(self, recipe: Dict) -> List[str]:
+        tags = []
+        if recipe.get('prep_time', 99) <= 20:
+            tags.append('rychlé')
+        
+        ingredients_str = ' '.join(str(i) for i in recipe.get('ingredients', [])).lower()
+        if 'kuřecí' in ingredients_str or 'kuře' in ingredients_str:
+            tags.append('kuřecí')
+        if 'ryba' in ingredients_str or 'losos' in ingredients_str or 'tuňák' in ingredients_str:
+            tags.append('rybí')
+        if any(veg in ingredients_str for veg in ['zelenina', 'mrkev', 'cibule', 'špenát', 'brokolice']):
+             tags.append('zeleninové')
+        if not any(maso in ingredients_str for maso in ['kuřecí', 'ryba', 'vepřové', 'hovězí']):
+            tags.append('vegetariánské')
+        tags.append('zdravé')
+        return list(set(tags))
+
+    def _detect_appliances(self, recipe: Dict) -> List[str]:
+        appliances = ['elektrický sporák']
+        instructions = ' '.join(recipe.get('instructions', [])).lower()
+        if any(word in instructions for word in ['trouba', 'pečeme', 'pečení']):
+            appliances.append('trouba')
+        if any(word in instructions for word in ['mikrovln', 'mikrovlnná']):
+            appliances.append('mikrovlnná trouba')
+        if any(word in instructions for word in ['mixér', 'mixujeme']):
+            appliances.append('mixér')
+        if any(word in instructions for word in ['gril', 'grilování']):
+            appliances.append('elektrický kontaktní gril')
+        return list(set(appliances))
+
+    def _create_fallback_recipes(self) -> List[Dict[str, Any]]:
+        print("Vracím záložní recepty.")
+        return [{'name': 'Záložní recept: Zeleninová polévka', 'prep_time': 15, 'servings': 2, 'ingredients': [{'name': 'Zelenina z ledničky', 'amount': 'co dům dal'}], 'instructions': ['Nakrájejte zeleninu.', 'Vařte 15 minut.', 'Ochuťte.'], 'nutrition_info': {}, 'cooking_tips': [], 'tags': ['rychlé', 'zdravé'], 'appliances': ['elektrický sporák']}]
