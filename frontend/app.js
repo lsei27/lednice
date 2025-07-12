@@ -384,4 +384,4 @@ class FridgeRecipeApp {
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     new FridgeRecipeApp();
-}); 
+});
