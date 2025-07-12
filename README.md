@@ -98,3 +98,39 @@ python start_frontend.py
 - **OpenAI API**: ~$0.05-0.10 za analýzu
 - **Fallback**: Zcela zdarma
 - **Hosting**: Vlastní server nebo cloud 
+
+Pokud je `ing` string, pak `ing.name`, `ing.amount` a `ing.unit` jsou `undefined`.
+
+---
+
+## Oprava
+
+Musíme upravit renderování ingrediencí v detailu receptu tak, aby fungovalo pro oba případy:
+- **Pokud je `ing` objekt:** zobrazit `ing.name`, `ing.amount`, `ing.unit`
+- **Pokud je `ing` string:** zobrazit jen název
+
+---
+
+### **Navržená úprava (do metody showRecipeDetail):**
+
+Najdi v `app.js` v metodě `showRecipeDetail` tento blok:
+```js
+${recipe.ingredients.map(ing => `
+    <div class="recipe-ingredient">
+        <strong>${ing.name}</strong> - ${ing.amount} ${ing.unit}
+    </div>
+`).join('')}
+```
+
+Nahraď ho tímto:
+```js
+${recipe.ingredients.map(ing => {
+    if (typeof ing === 'string') {
+        return `<div class="recipe-ingredient"><strong>${ing}</strong></div>`;
+    } else {
+        return `<div class="recipe-ingredient"><strong>${ing.name ?? ''}</strong>${ing.amount ? ' - ' + ing.amount : ''} ${ing.unit ?? ''}</div>`;
+    }
+}).join('')}
+```
+
+---
