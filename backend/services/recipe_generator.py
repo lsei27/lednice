@@ -1,6 +1,5 @@
 from typing import List, Dict, Any
 import random
-from .recipe_database import RecipeDatabase
 from .openai_service import OpenAIService
 
 class RecipeGenerator:
@@ -22,34 +21,18 @@ class RecipeGenerator:
     def generate_recipes(self, ingredients: List[Dict[str, Any]], 
                         max_time: int = 20, 
                         dietary_restrictions: List[str] = None) -> List[Dict[str, Any]]:
+        if not self.use_openai:
+            raise RuntimeError("OpenAI API není dostupné. Nastavte správně OPENAI_API_KEY.")
         try:
-            if self.use_openai:
-                print("🤖 Používám OpenAI GPT pro generování receptů...")
-                ai_recipes = self.openai_service.generate_recipes(
-                    ingredients, max_time, dietary_restrictions
-                )
-                
-                if ai_recipes:
-                    enriched_recipes = self._enrich_recipes(ai_recipes, ingredients)
-                    return enriched_recipes
-            
-            print("📚 Používám lokální databázi receptů...")
-            ingredient_names = [ing['name'].lower() for ing in ingredients]
-            
-            available_recipes = self.db.get_recipes_by_ingredients(
-                ingredient_names, max_time
+            print("🤖 Používám OpenAI GPT pro generování receptů...")
+            ai_recipes = self.openai_service.generate_recipes(
+                ingredients, max_time, dietary_restrictions
             )
-            
-            if dietary_restrictions:
-                available_recipes = self._filter_by_dietary_restrictions(
-                    available_recipes, dietary_restrictions
-                )
-            
-            selected_recipes = self._select_best_recipes(available_recipes, ingredient_names)
-            enriched_recipes = self._enrich_recipes(selected_recipes, ingredients)
-            
-            return enriched_recipes
-            
+            if ai_recipes:
+                enriched_recipes = self._enrich_recipes(ai_recipes, ingredients)
+                return enriched_recipes
+            else:
+                return []
         except Exception as e:
             print(f"Chyba při generování receptů: {e}")
             return []
