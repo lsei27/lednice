@@ -200,9 +200,13 @@ class OpenAIService:
                 if not isinstance(recipe, dict):
                     continue
 
+                try:
+                    prep_time = int(recipe.get('prep_time', 0))
+                except (ValueError, TypeError):
+                    prep_time = 0
                 new_recipe = {
                     'name': recipe.get('name', 'Recept bez názvu'),
-                    'prep_time': recipe.get('prep_time', 0),
+                    'prep_time': prep_time,
                     'servings': recipe.get('servings', 1),
                     'ingredients': recipe.get('ingredients', []),
                     'instructions': recipe.get('instructions', []),
@@ -230,7 +234,11 @@ class OpenAIService:
 
     def _generate_recipe_tags(self, recipe: Dict) -> List[str]:
         tags = []
-        if recipe.get('prep_time', 99) <= 20:
+        try:
+            prep_time = int(recipe.get('prep_time', 99))
+        except (ValueError, TypeError):
+            prep_time = 99
+        if prep_time <= 20:
             tags.append('rychlé')
         
         ingredients_str = ' '.join(str(i) for i in recipe.get('ingredients', [])).lower()
