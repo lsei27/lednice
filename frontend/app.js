@@ -4,7 +4,7 @@
 
 class FridgeRecipeApp {
     constructor() {
-        this.apiBaseUrl = 'http://localhost:5000/api';
+        this.apiBaseUrl = 'https://lednice.onrender.com/api';
         this.selectedFile = null;
         this.ingredients = [];
         this.recipes = [];
