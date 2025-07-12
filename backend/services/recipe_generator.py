@@ -186,21 +186,25 @@ class RecipeGenerator:
         } 
 
     def _parse_ingredients_response(self, response: str) -> List[Dict[str, Any]]:
+        """
+        Očekává plain text odpověď: čárkami oddělený seznam názvů ingrediencí.
+        Vrací list dictů: [{"name": ...}]
+        """
+        cleaned_response = response.strip()
+        if not cleaned_response:
+            print("Odpověď od OpenAI je prázdná!")
+            return []
         try:
-            cleaned_response = response.strip()
-            if not cleaned_response:
-                print("Odpověď od OpenAI je prázdná!")
-                return []
-            # ... zbytek kódu ...
-        except (json.JSONDecodeError, ValueError, TypeError) as e:
+            # Rozdělení podle čárek, odstranění whitespace, filtrování prázdných
+            names = [name.strip() for name in cleaned_response.split(',') if name.strip()]
+            return [{"name": name} for name in names]
+        except Exception as e:
             print(f"Chyba při parsování ingrediencí: {e}")
             print(f"Odpověď od OpenAI byla: {response}")
             return self._fallback_ingredients_parsing(response)
 
     def _fallback_ingredients_parsing(self, response: str) -> List[Dict[str, Any]]:
-        print(f"Pokus o parsování ingrediencí z nevalidního JSON: {response}")
-        # Toto je jenom fallback, nepředstavuje plnou logiku parsování
-        # V reálném případě by se měla použít nějaká robustnější knihovna pro JSON
-        # nebo by se měla zpracovat odpověď ručně.
-        # Pro jednoduchost v tomto příkladu vrátíme prázdný seznam.
-        return [] 
+        print(f"Fallback parsování ingrediencí z plain textu: {response}")
+        # Stejná logika jako výše, ale robustněji ignoruje whitespace a prázdné položky
+        names = [name.strip() for name in response.split(',') if name.strip()]
+        return [{"name": name} for name in names] 
