@@ -118,9 +118,12 @@ class OpenAIService:
         restrictions_text = f"\nDietní omezení: {', '.join(dietary_restrictions)}" if dietary_restrictions else ""
         
         return f"""
-        Vytvoř 3-5 rychlých a zdravých receptů z těchto ingrediencí: {ingredients_text}.
-        Doma jsou běžné suroviny (sůl, pepř, olej, cibule, česnek, mouka, rýže, těstoviny).
-        Požadavky: maximální příprava {max_time} minut, zdravé vaření (ne smažení), respektuj spotřebiče (sporák, trouba, gril, mixér).
+        Na základě detekovaných surovin vygeneruj 3–5 rychlých a zdravých receptů. Použij pouze ty suroviny, které jsou s jistotou rozpoznané z obrázku {ingredients_text}.
+        Nepřidávej žádné ingredience, které neznáš, pokud není identifikovatelné, do receptů takové suroviny nedávej. Předpokládej, že jsou doma běžné suroviny: sůl, pepř, olivový olej, cibule, mléko, česnek, mouka, rýže, těstoviny, kuskus, bazalkové pesto. V mrazáku je prakticky vždy kuřecí maso, nebo mražené krevety, pokud se ti bude hodit do receptu, použij. 
+        Recepty musí splňovat:
+        - maximální doba přípravy {max_time} minut
+        - zdravý způsob přípravy (žádné smažení)
+        - dostupné spotřebiče: sporák, trouba, gril, mixér, mikrovlná trouba, rychlovarná konvice
         {restrictions_text}
         Vrať JSON objekt s klíčem "recipes", což je pole objektů. Každý objekt musí mít klíče: name, prep_time, servings, ingredients (pole stringů), instructions (pole stringů), nutrition_info (objekt), cooking_tips (pole stringů).
         Vrať POUZE validní JSON.
